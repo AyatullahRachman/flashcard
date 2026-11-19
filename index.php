@@ -38,126 +38,74 @@ $stmt = $pdo->prepare(
 $stmt->execute($param);
 $daftar = $stmt->fetchAll();
 ?>
-
-<?php
-require "koneksi.php";
-
-// Simpan penilaian (hafal / belum), lalu lanjut ke kartu berikutnya
-if ($_SERVER["REQUEST_METHOD"] === "POST") {
-    $status = ($_POST["status"] ?? "") === "hafal" ? "hafal" : "belum";
-    $stmt = $pdo->prepare("UPDATE kata SET status = ? WHERE id = ?");
-    $stmt->execute([$status, $_POST["id"]]);
-    header("Location: kartu.php?terakhir=" . (int)$_POST["id"]);
-    exit;
-}
-
-$terakhir = (int)($_GET["terakhir"] ?? 0);
-
-// 70% kemungkinan ambil kata yang belum hafal, 30% yang sudah hafal
-$target = (mt_rand(1, 100) <= 70) ? "belum" : "hafal";
-
-$ambil = $pdo->prepare(
-    "SELECT * FROM kata WHERE status = ? AND id != ? ORDER BY RAND() LIMIT 1"
-);
-$ambil->execute([$target, $terakhir]);
-$k = $ambil->fetch();
-
-// Kalau kelompok itu kosong, ambil dari kelompok lainnya
-if (!$k) {
-    $lain = ($target === "belum") ? "hafal" : "belum";
-    $ambil->execute([$lain, $terakhir]);
-    $k = $ambil->fetch();
-}
-
-// Kalau hanya ada satu kata di tabel
-if (!$k) {
-    $k = $pdo->query("SELECT * FROM kata LIMIT 1")->fetch();
-}
-
-// Statistik kemajuan
-$stat = $pdo->query(
-    "SELECT COUNT(*) AS total, SUM(status = 'hafal') AS hafal FROM kata"
-)->fetch();
-$total = (int)$stat["total"];
-$hafal = (int)$stat["hafal"];
-?>
 <!DOCTYPE html>
 <html lang="id">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Belajar Kartu</title>
+    <title>Kartu Hafalan</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<main class="wadah tengah">
-    <h1>Belajar Kartu</h1>
-    <p class="petunjuk">Sudah hafal: <?= $hafal ?> dari <?= $total ?> kata</p>
+<main class="wadah">
+    <h1>Kartu Hafalan Kosakata</h1>
 
-    <?php if ($k): ?>
-        <div class="scene" id="scene">
-            <div class="kartu" id="kartu">
-                <div class="sisi depan">
-                    <h2><?= htmlspecialchars($k["inggris"]) ?></h2>
-                    <button type="button" class="tombol kecil suara"
-                        data-teks="<?= htmlspecialchars($k["inggris"]) ?>">Listen</button>
-                    <span class="petunjuk">Klik kartu untuk melihat arti</span>
-                </div>
-                <div class="sisi belakang">
-                    <h2><?= htmlspecialchars($k["arti"]) ?></h2>
-                    <em><?= htmlspecialchars($k["contoh"]) ?></em>
-                    <?php if ($k["contoh"]):?>
-                        <button type="button" class="tombol kecil suara"
-                            data-teks="<?= htmlspecialchars($k["contoh"]) ?>">Contoh Kalimat</button>
+    <p>
+        <a class="tombol utama" href="kartu.php<?= $filter !== "" ? "?kategori=" . urlencode($filter) : "" ?>">Mulai belajar</a>
+        <a class="tombol" href="impor.php">Impor kata</a>
+    </p>
+
+    <form method="post" class="form-tambah">
+        <input name="inggris" placeholder="Kata (English)" required>
+        <input name="arti" placeholder="Arti" required>
+        <input name="contoh" placeholder="Contoh kalimat" required>
+        <select name="kategori_id">
+            <option value="">Tanpa kategori</option>
+            <?php foreach ($kategori as $c): ?>
+                <option value="<?= (int)$c["id"] ?>"><?= htmlspecialchars($c["nama"]) ?></option>
+            <?php endforeach; ?>
+        </select>
+        <button class="tombol utama">Tambah</button>
+    </form>
+
+    <h2>Daftar Kata (<?= count($daftar) ?>)</h2>
+
+    <nav class="filter">
+        <a class="tombol kecil <?= $filter === "" ? "utama" : "" ?>" href="index.php">Semua</a>
+        <?php foreach ($kategori as $c): ?>
+            <a class="tombol kecil <?= (string)$filter === (string)$c["id"] ? "utama" : "" ?>"
+               href="index.php?kategori=<?= (int)$c["id"] ?>"><?= htmlspecialchars($c["nama"]) ?></a>
+        <?php endforeach; ?>
+        <a class="tombol kecil <?= $filter === "tanpa" ? "utama" : "" ?>"
+           href="index.php?kategori=tanpa">Tanpa kategori</a>
+        <a class="tombol kecil" href="kategori.php">Kelola kategori</a>
+    </nav>
+
+    <ul class="daftar">
+        <?php foreach ($daftar as $k): ?>
+            <li class="item">
+                <div>
+                    <strong><?= htmlspecialchars($k["inggris"]) ?></strong>
+                    <?php if ($k["nama_kategori"]): ?>
+                        <span class="lencana"><?= htmlspecialchars($k["nama_kategori"]) ?></span>
+                    <?php endif; ?>
+                    <span class="arti">= <?= htmlspecialchars($k["arti"]) ?></span>
+                    <?php if ($k["contoh"]): ?>
+                        <em class="contoh"><?= htmlspecialchars($k["contoh"]) ?></em>
                     <?php endif; ?>
                 </div>
-            </div>
-        </div>
 
-        <form method="post" id="penilaian" class="penilaian" hidden>
-            <input type="hidden" name="id" value="<?= (int)$k["id"] ?>">
-            <button class="tombol" name="status" value="belum">Belum hafal</button>
-            <button class="tombol utama" name="status" value="hafal">Sudah hafal</button>
-        </form>
-
-        <p><a class="tombol kecil" href="kartu.php?terakhir=<?= (int)$k["id"] ?>">Lewati</a></p>
-    <?php else: ?>
-        <p>Belum ada kata. Tambahkan dulu di halaman utama.</p>
-    <?php endif; ?>
-
-    <p><a href="index.php">Kembali ke daftar</a></p>
+                <div class="aksi">
+                    <a class="tombol kecil" href="edit.php?id=<?= (int)$k["id"] ?>">Edit</a>
+                    <form method="post" onsubmit="return confirm('Hapus kata ini?')">
+                        <input type="hidden" name="aksi" value="hapus">
+                        <input type="hidden" name="id" value="<?= (int)$k["id"] ?>">
+                        <button class="tombol kecil bahaya">Hapus</button>
+                    </form>
+                </div>
+            </li>
+        <?php endforeach; ?>
+    </ul>
 </main>
-
-<script>
-    const scene = document.getElementById('scene');
-    if (scene) {
-        scene.addEventListener('click', function () {
-            document.getElementById('kartu').classList.toggle('balik');
-            document.getElementById('penilaian').hidden = false;
-        });
-    }
-
-    function ucapkan(teks) {
-        if (!('speechSynthesis' in window)) {
-            alert('Browser ini tidak mendukung fitur pengucapan.');
-            return;
-        }
-        window.speechSynthesis.cancel();          // hentikan suara sebelumnya
-        const u = new SpeechSynthesisUtterance(teks);
-        u.lang = 'en-US';
-        u.rate = 0.9;                              // sedikit lebih pelan
-        const suara = window.speechSynthesis.getVoices()
-            .find(v => v.lang.startsWith('en'));
-        if (suara) u.voice = suara;
-        window.speechSynthesis.speak(u);
-    }
-
-    document.querySelectorAll('.suara').forEach(function (tombol) {
-        tombol.addEventListener('click', function (e) {
-            e.stopPropagation();                   // jangan ikut membalik kartu
-            ucapkan(tombol.dataset.teks);
-        });
-    });
-</script>
 </body>
 </html>
