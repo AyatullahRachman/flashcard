@@ -1,0 +1,165 @@
+/* ===== Warna (otomatis mengikuti mode terang/gelap perangkat) ===== */
+:root {
+  --bg: #f5f7fa;
+  --kartu: #ffffff;
+  --belakang: #eaf2ff;
+  --teks: #1f2933;
+  --redup: #6b7280;
+  --garis: #d9dee5;
+  --aksen: #2563eb;
+  --aksen-teks: #ffffff;
+  --bahaya: #dc2626;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #12161c;
+    --kartu: #1b212a;
+    --belakang: #1e2a3d;
+    --teks: #e6e9ee;
+    --redup: #98a2b3;
+    --garis: #2d3643;
+    --aksen: #4f8cff;
+    --aksen-teks: #0b1220;
+    --bahaya: #f87171;
+  }
+}
+
+/* ===== Dasar ===== */
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--teks);
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  line-height: 1.5;
+}
+
+.wadah { max-width: 640px; margin: 0 auto; padding: 1.5rem 1rem 3rem; }
+.tengah { text-align: center; }
+
+h1 { font-size: 1.6rem; margin: 0 0 .75rem; }
+h2 { font-size: 1.15rem; margin: 2rem 0 .75rem; }
+a { color: var(--aksen); }
+
+/* ===== Form ===== */
+.form-tambah { display: grid; gap: .6rem; }
+
+input {
+  width: 100%;
+  padding: .6rem .75rem;
+  border: 1px solid var(--garis);
+  border-radius: 8px;
+  background: var(--kartu);
+  color: var(--teks);
+  font: inherit;
+}
+input:focus { outline: 2px solid var(--aksen); outline-offset: 1px; }
+
+/* ===== Tombol ===== */
+.tombol {
+  display: inline-block;
+  padding: .5rem 1rem;
+  border: 1px solid var(--garis);
+  border-radius: 8px;
+  background: var(--kartu);
+  color: var(--teks);
+  font: inherit;
+  text-decoration: none;
+  cursor: pointer;
+}
+.tombol:hover { border-color: var(--aksen); }
+.tombol.utama { background: var(--aksen); border-color: var(--aksen); color: var(--aksen-teks); }
+.tombol.kecil { padding: .25rem .65rem; font-size: .875rem; }
+.tombol.bahaya { color: var(--bahaya); }
+.tombol.bahaya:hover { border-color: var(--bahaya); }
+
+/* ===== Daftar kata ===== */
+.daftar { list-style: none; margin: 0; padding: 0; display: grid; gap: .6rem; }
+
+.item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  padding: .75rem 1rem;
+  background: var(--kartu);
+  border: 1px solid var(--garis);
+  border-radius: 10px;
+}
+.item .arti { color: var(--redup); }
+.item .contoh { display: block; color: var(--redup); font-size: .9rem; }
+
+.aksi { display: flex; gap: .4rem; flex-shrink: 0; align-items: center; }
+.aksi form { margin: 0; }
+
+/* ===== Kartu yang bisa dibalik ===== */
+.scene {
+  width: 340px;
+  max-width: 100%;
+  height: 220px;
+  margin: 2rem auto;
+  perspective: 1000px;
+  cursor: pointer;
+}
+.kartu {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transition: transform .6s;
+  transform-style: preserve-3d;
+}
+.kartu.balik { transform: rotateY(180deg); }
+
+.sisi {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 1rem;
+  border: 2px solid var(--garis);
+  border-radius: 14px;
+  background: var(--kartu);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+.belakang { transform: rotateY(180deg); background: var(--belakang); }
+.petunjuk { color: var(--redup); font-size: .875rem; }
+
+@media (prefers-reduced-motion: reduce) {
+  .kartu { transition: none; }
+}
+
+/* ===== Layar kecil ===== */
+@media (max-width: 480px) {
+  .item { flex-direction: column; align-items: flex-start; }
+}
+
+/*Atribut Hidden Harus Menang atas display lain*/
+[hidden]{
+  display: none !important;
+}
+
+.penilaian{
+  display: flex;
+  gap: .6rem;
+  justify-content: center;
+  margin-bottom: 1rem;
+}
+
+.lencana{
+  display: inline-block;
+  padding: .25rem .5rem;
+  border-radius: 8px;
+  font-size: .75rem;
+  border: 1px solid var(--garis);
+  color: var(--redup);
+}
+
+.lencana.hafal{
+  color: #16a34a;
+  border-color: #16a34a;
+}

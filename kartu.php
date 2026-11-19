@@ -1,17 +1,44 @@
 <?php
 require "koneksi.php";
 
+// Simpan penilaian (hafal / belum), lalu lanjut ke kartu berikutnya
+if ($_SERVER["REQUEST_METHOD"] === "POST") {
+    $status = ($_POST["status"] ?? "") === "hafal" ? "hafal" : "belum";
+    $stmt = $pdo->prepare("UPDATE kata SET status = ? WHERE id = ?");
+    $stmt->execute([$status, $_POST["id"]]);
+    header("Location: kartu.php?terakhir=" . (int)$_POST["id"]);
+    exit;
+}
+
 $terakhir = (int)($_GET["terakhir"] ?? 0);
 
-// Ambil satu kata acak, selain kata yang baru saja tampil
-$stmt = $pdo->prepare("SELECT * FROM kata WHERE id != ? ORDER BY RAND() LIMIT 1");
-$stmt->execute([$terakhir]);
-$k = $stmt->fetch();
+// 70% kemungkinan ambil kata yang belum hafal, 30% yang sudah hafal
+$target = (mt_rand(1, 100) <= 70) ? "belum" : "hafal";
 
-// Kalau hanya ada satu kata di tabel, ambil kata itu saja
+$ambil = $pdo->prepare(
+    "SELECT * FROM kata WHERE status = ? AND id != ? ORDER BY RAND() LIMIT 1"
+);
+$ambil->execute([$target, $terakhir]);
+$k = $ambil->fetch();
+
+// Kalau kelompok itu kosong, ambil dari kelompok lainnya
+if (!$k) {
+    $lain = ($target === "belum") ? "hafal" : "belum";
+    $ambil->execute([$lain, $terakhir]);
+    $k = $ambil->fetch();
+}
+
+// Kalau hanya ada satu kata di tabel
 if (!$k) {
     $k = $pdo->query("SELECT * FROM kata LIMIT 1")->fetch();
 }
+
+// Statistik kemajuan
+$stat = $pdo->query(
+    "SELECT COUNT(*) AS total, SUM(status = 'hafal') AS hafal FROM kata"
+)->fetch();
+$total = (int)$stat["total"];
+$hafal = (int)$stat["hafal"];
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -19,28 +46,15 @@ if (!$k) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Belajar Kartu</title>
-    <style>
-        body { font-family: sans-serif; text-align: center; margin: 2rem; }
-        .scene { width: 320px; max-width: 90%; height: 200px; margin: 2rem auto;
-                 perspective: 1000px; cursor: pointer; }
-        .kartu { position: relative; width: 100%; height: 100%;
-                 transition: transform 0.6s; transform-style: preserve-3d; }
-        .kartu.balik { transform: rotateY(180deg); }
-        .sisi { position: absolute; inset: 0; display: flex; flex-direction: column;
-                justify-content: center; align-items: center; padding: 1rem;
-                border: 2px solid #333; border-radius: 12px; color: #000;
-                backface-visibility: hidden; background: #fff; }
-        .belakang { transform: rotateY(180deg); background: #eef6ff; }
-        .petunjuk { color: #666; font-size: 0.9rem; }
-        .tombol { display: inline-block; padding: 0.5rem 1rem; border: 1px solid #333;
-                  border-radius: 6px; text-decoration: none; color: #000; }
-    </style>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
+<main class="wadah tengah">
     <h1>Belajar Kartu</h1>
+    <p class="petunjuk">Sudah hafal: <?= $hafal ?> dari <?= $total ?> kata</p>
 
     <?php if ($k): ?>
-        <div class="scene" onclick="document.getElementById('kartu').classList.toggle('balik')">
+        <div class="scene" id="scene">
             <div class="kartu" id="kartu">
                 <div class="sisi depan">
                     <h2><?= htmlspecialchars($k["inggris"]) ?></h2>
@@ -53,11 +67,28 @@ if (!$k) {
             </div>
         </div>
 
-        <a class="tombol" href="kartu.php?terakhir=<?= (int)$k["id"] ?>">Kartu berikutnya</a>
+        <form method="post" id="penilaian" class="penilaian" hidden>
+            <input type="hidden" name="id" value="<?= (int)$k["id"] ?>">
+            <button class="tombol" name="status" value="belum">Belum hafal</button>
+            <button class="tombol utama" name="status" value="hafal">Sudah hafal</button>
+        </form>
+
+        <p><a class="tombol kecil" href="kartu.php?terakhir=<?= (int)$k["id"] ?>">Lewati</a></p>
     <?php else: ?>
         <p>Belum ada kata. Tambahkan dulu di halaman utama.</p>
     <?php endif; ?>
 
     <p><a href="index.php">Kembali ke daftar</a></p>
+</main>
+
+<script>
+    const scene = document.getElementById('scene');
+    if (scene) {
+        scene.addEventListener('click', function () {
+            document.getElementById('kartu').classList.toggle('balik');
+            document.getElementById('penilaian').hidden = false;
+        });
+    }
+</script>
 </body>
 </html>

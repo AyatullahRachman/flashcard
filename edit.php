@@ -30,6 +30,7 @@ if (!$k){
     <title>Edit Kata</title>
 </head>
 <body>
+<main class="wadah>
     <h1>Edit Kata</h1>
     <form method="post">
         <input type="hidden" name="id" value="<?= (int)$k["id"]?>">
@@ -38,7 +39,7 @@ if (!$k){
         <input name="contoh" value="<?= htmlspecialchars($k["contoh"])?>">
         <button>Simpan</button>
     </form>
-
     <p><a href="index.php"></a></p>
+</main>
 </body>
 </html>
