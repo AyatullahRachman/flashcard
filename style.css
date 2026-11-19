@@ -46,14 +46,16 @@ a { color: var(--aksen); }
 /* ===== Form ===== */
 .form-tambah { display: grid; gap: .6rem; }
 
-input {
-  width: 100%;
-  padding: .6rem .75rem;
-  border: 1px solid var(--garis);
-  border-radius: 8px;
+textarea{
+  min-height: 220px;
+  resize: vertical;
+}
+
+code{
   background: var(--kartu);
-  color: var(--teks);
-  font: inherit;
+  border: 1px solid var(--kartu);
+  padding: .1rem .4rem;
+  border-radius: 6px
 }
 input:focus { outline: 2px solid var(--aksen); outline-offset: 1px; }
 

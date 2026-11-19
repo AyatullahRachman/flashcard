@@ -29,6 +29,7 @@ $daftar = $pdo->query("SELECT * FROM kata ORDER BY id DESC")->fetchAll();
 <body>
     <h1>Kartu Hafalan Kosakata</h1>
     <p><a href="kartu.php">Mulai belajar</a></p>
+    <a class="tombol" href="impor.php">Impor Kata</a>
 
     <form method="post">
         <input name="inggris" placeholder="Kata (English)" required>
