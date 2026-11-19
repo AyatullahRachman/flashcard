@@ -58,11 +58,17 @@ $hafal = (int)$stat["hafal"];
             <div class="kartu" id="kartu">
                 <div class="sisi depan">
                     <h2><?= htmlspecialchars($k["inggris"]) ?></h2>
+                    <button type="button" class="tombol kecil suara"
+                        data-teks="<?= htmlspecialchars($k["inggris"]) ?>">Listen</button>
                     <span class="petunjuk">Klik kartu untuk melihat arti</span>
                 </div>
                 <div class="sisi belakang">
                     <h2><?= htmlspecialchars($k["arti"]) ?></h2>
                     <em><?= htmlspecialchars($k["contoh"]) ?></em>
+                    <?php if ($k["contoh"]):?>
+                        <button type="button" class="tombol kecil suara"
+                            data-teks="<?= htmlspecialchars($k["contoh"]) ?>">Contoh Kalimat</button>
+                    <?php endif; ?>
                 </div>
             </div>
         </div>
@@ -89,6 +95,28 @@ $hafal = (int)$stat["hafal"];
             document.getElementById('penilaian').hidden = false;
         });
     }
+
+    function ucapkan(teks) {
+        if (!('speechSynthesis' in window)) {
+            alert('Browser ini tidak mendukung fitur pengucapan.');
+            return;
+        }
+        window.speechSynthesis.cancel();          // hentikan suara sebelumnya
+        const u = new SpeechSynthesisUtterance(teks);
+        u.lang = 'en-US';
+        u.rate = 0.9;                              // sedikit lebih pelan
+        const suara = window.speechSynthesis.getVoices()
+            .find(v => v.lang.startsWith('en'));
+        if (suara) u.voice = suara;
+        window.speechSynthesis.speak(u);
+    }
+
+    document.querySelectorAll('.suara').forEach(function (tombol) {
+        tombol.addEventListener('click', function (e) {
+            e.stopPropagation();                   // jangan ikut membalik kartu
+            ucapkan(tombol.dataset.teks);
+        });
+    });
 </script>
 </body>
 </html>
