@@ -2,6 +2,7 @@
 require "koneksi.php";
 
 $laporan = null;
+$kategori = $pdo->query("SELECT * FROM kategori ORDER BY nama")->fetchAll();
 
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $baris = preg_split('/\R/', trim($_POST["teks"] ?? ""));
@@ -9,8 +10,20 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $duplikat = [];
     $rusak = [];
 
+    // Tentukan kategori: kategori baru (kalau diisi) menang atas pilihan dropdown
+    $kid = ($_POST["kategori_id"] ?? "") !== "" ? (int)$_POST["kategori_id"] : null;
+    $baru = trim($_POST["kategori_baru"] ?? "");
+    if ($baru !== "") {
+        $pdo->prepare("INSERT IGNORE INTO kategori (nama) VALUES (?)")->execute([$baru]);
+        $cari = $pdo->prepare("SELECT id FROM kategori WHERE nama = ?");
+        $cari->execute([$baru]);
+        $kid = (int)$cari->fetchColumn();
+    }
+
     $cek = $pdo->prepare("SELECT COUNT(*) FROM kata WHERE LOWER(inggris) = LOWER(?)");
-    $sisip = $pdo->prepare("INSERT INTO kata (inggris, arti, contoh) VALUES (?, ?, ?)");
+    $sisip = $pdo->prepare(
+        "INSERT INTO kata (inggris, arti, contoh, kategori_id) VALUES (?, ?, ?, ?)"
+    );
 
     $pdo->beginTransaction();
     foreach ($baris as $no => $b) {
@@ -39,12 +52,15 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             continue;
         }
 
-        $sisip->execute([$inggris, $arti, $contoh]);
+        $sisip->execute([$inggris, $arti, $contoh, $kid]);
         $tambah++;
     }
     $pdo->commit();
 
     $laporan = ["tambah" => $tambah, "duplikat" => $duplikat, "rusak" => $rusak];
+
+    // Refresh daftar kategori supaya kategori baru langsung muncul di dropdown
+    $kategori = $pdo->query("SELECT * FROM kategori ORDER BY nama")->fetchAll();
 }
 ?>
 <!DOCTYPE html>
@@ -78,12 +94,20 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     <?php endif; ?>
 
     <form method="post" class="form-tambah">
+        <select name="kategori_id">
+            <option value="">Tanpa kategori</option>
+            <?php foreach ($kategori as $c): ?>
+                <option value="<?= (int)$c["id"] ?>"><?= htmlspecialchars($c["nama"]) ?></option>
+            <?php endforeach; ?>
+        </select>
+        <input name="kategori_baru" placeholder="...atau buat kategori baru (opsional)">
+
         <textarea name="teks" placeholder="airport | bandara | We arrived at the airport early."
                   required></textarea>
         <button class="tombol utama">Impor</button>
     </form>
 
-    <p><a href="index.php">Kembali ke daftar</a></p>
+    <p><a href="index.php">Kembali ke daftar</a> · <a href="kategori.php">Kelola kategori</a></p>
 </main>
 </body>
 </html>

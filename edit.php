@@ -1,12 +1,15 @@
 <?php
 require "koneksi.php";
 
-if($_SERVER["REQUEST_METHOD"] === "POST"){
+$kategori = $pdo->query("SELECT * FROM kategori ORDER BY nama")->fetchAll();
+
+if ($_SERVER["REQUEST_METHOD"] === "POST") {
+    $kid = ($_POST["kategori_id"] ?? "") !== "" ? (int)$_POST["kategori_id"] : null;
     $stmt = $pdo->prepare(
-        "UPDATE kata SET inggris = ?, arti = ?, contoh = ? WHERE id = ?"
+        "UPDATE kata SET inggris = ?, arti = ?, contoh = ?, kategori_id = ? WHERE id = ?"
     );
     $stmt->execute([
-        $_POST["inggris"], $_POST["arti"], $_POST["contoh"], $_POST["id"]
+        $_POST["inggris"], $_POST["arti"], $_POST["contoh"], $kid, $_POST["id"]
     ]);
     header("Location: index.php");
     exit;
@@ -37,6 +40,15 @@ if (!$k){
         <input name="inggris" value="<?= htmlspecialchars($k["inggris"])?>">
         <input name="arti" value="<?= htmlspecialchars($k["arti"])?>">
         <input name="contoh" value="<?= htmlspecialchars($k["contoh"])?>">
+        <select name="kategori_id">
+        <option value="">Tanpa kategori</option>
+            <?php foreach ($kategori as $c): ?>
+                <option value="<?= (int)$c["id"] ?>"
+                    <?= (int)$k["kategori_id"] === (int)$c["id"] ? "selected" : "" ?>>
+                    <?= htmlspecialchars($c["nama"]) ?>
+                </option>
+            <?php endforeach; ?>
+        </select>
         <button>Simpan</button>
     </form>
     <p><a href="index.php"></a></p>
